@@ -5,12 +5,12 @@
 
 // ── CONFIG (filled automatically by setup wizard, or edit manually) ──────────
 const CONFIG = {
-  CAMPAIGN_NAME:  "Donativos",          // e.g. "Terremoto Manta 2025"
-  CENTER_NAME:    "Centro de Acopio",   // e.g. "Centro Norte"
-  LEADER_EMAILS:  ["lider@gmail.com"],  // Up to 3 leader email addresses
-  SHEET_ID:       "",                   // Leave blank → auto-created on first run
-  FOLDER_ID:      "",                   // Leave blank → auto-created on first run
-  UPLOAD_PAGE_URL: "",                   // Public GitHub Pages URL for upload.html
+  CAMPAIGN_NAME:   "Ven",
+  CENTER_NAME:     "test4",
+  LEADER_EMAILS:   ["para.nadra@gmail.com"],
+  SHEET_ID:        "",   // auto-created on first run
+  FOLDER_ID:       "",   // auto-created on first run
+  UPLOAD_PAGE_URL: "",   // fill in Step 5 after upload.html is on GitHub Pages
 };
 
 // ── SHEET COLUMNS ─────────────────────────────────────────────────────────────
