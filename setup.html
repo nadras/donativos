@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuración — Sistema de Donativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-deep:   #1B4332;
+      --green-mid:    #2D6A4F;
+      --green-light:  #52B788;
+      --green-pale:   #D8F3DC;
+      --amber:        #F4A261;
+      --amber-dark:   #E76F51;
+      --off-white:    #F4F7F4;
+      --text-dark:    #1A2E1A;
+      --text-muted:   #5C7A5C;
+      --border:       #C8DFC8;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--off-white);
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding: 0 0 80px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: var(--green-deep);
+      padding: 40px 24px 32px;
+      text-align: center;
+      position: relative;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 28px;
+      background: var(--off-white);
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--amber);
+      color: var(--green-deep);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      color: #fff;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .hero p {
+      color: var(--green-pale);
+      font-size: 14px;
+      margin-top: 10px;
+      line-height: 1.6;
+      max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── STEPS INDICATOR ── */
+    .steps {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      margin: 28px auto 0;
+      max-width: 500px;
+      padding: 0 24px;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+    .step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: calc(50% + 14px);
+      right: calc(-50% + 14px);
+      height: 2px;
+      background: var(--border);
+    }
+    .step-item.active::after { background: var(--green-light); }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+    .step-item.active   .step-num { background: var(--green-mid);   color: #fff; }
+    .step-item.complete .step-num { background: var(--green-light);  color: #fff; }
+    .step-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .step-item.active .step-label { color: var(--green-mid); }
+
+    /* ── CARDS ── */
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 20px;
+      display: none;
+    }
+    .panel.active { display: block; }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--green-deep);
+      margin-bottom: 6px;
+    }
+    .panel-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    label span.opt { font-weight: 400; color: #aaa; font-size: 11px; }
+
+    input, textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-dark);
+      background: var(--off-white);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+      background: #fff;
+    }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.4; }
+
+    /* ── WS NUMBERS ── */
+    .ws-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .ws-row input { flex: 1; margin: 0; }
+    .ws-badge {
+      background: var(--green-pale);
+      color: var(--green-mid);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .ws-badge.opt-badge { background: #f0f0f0; color: #aaa; }
+
+    .callmebot-info {
+      background: #FFF8F0;
+      border: 1px solid var(--amber);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #7B3F00;
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+    .callmebot-info strong { display: block; margin-bottom: 6px; font-size: 14px; }
+    .callmebot-info code {
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* ── BTNS ── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-back, .btn-next {
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-back { background: var(--off-white); color: var(--text-muted); border: 1.5px solid var(--border); }
+    .btn-back:hover { background: var(--green-pale); }
+    .btn-next { background: var(--green-mid); color: #fff; }
+    .btn-next:hover { background: var(--green-deep); }
+    .btn-next:only-child { flex: 1; }
+
+    /* ── OUTPUT PANEL ── */
+    .output-panel {
+      background: var(--green-deep);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+    .output-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green-pale);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .output-code {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #A7F3D0;
+      white-space: pre;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .btn-copy-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background .2s;
+    }
+    .btn-copy-block:hover { background: rgba(255,255,255,0.18); }
+
+    /* ── CHECKLIST ── */
+    .checklist {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--green-pale);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .check-num {
+      width: 24px; height: 24px;
+      min-width: 24px;
+      border-radius: 50%;
+      background: var(--green-mid);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .check-text { font-size: 13px; line-height: 1.5; color: var(--green-deep); }
+    .check-text strong { display: block; font-weight: 700; margin-bottom: 2px; }
+
+    .qr-note {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .qr-note strong { color: var(--green-deep); }
+
+    a.link { color: var(--green-mid); font-weight: 600; }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 22px; }
+      .panel { border-radius: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-badge">⚙️ Configuración</div>
+    <h1>Sistema de Donativos</h1>
+    <p>Completa estos pasos una sola vez para dejar el sistema listo para tu centro de acopio.</p>
+  </div>
+
+  <!-- STEP INDICATORS -->
+  <div class="container">
+    <div class="steps" id="steps">
+      <div class="step-item active" id="step-ind-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Centro</div>
+      </div>
+      <div class="step-item" id="step-ind-2">
+        <div class="step-num">2</div>
+        <div class="step-label">WhatsApp</div>
+      </div>
+      <div class="step-item" id="step-ind-3">
+        <div class="step-num">3</div>
+        <div class="step-label">Google</div>
+      </div>
+      <div class="step-item" id="step-ind-4">
+        <div class="step-num">4</div>
+        <div class="step-label">Código</div>
+      </div>
+      <div class="step-item" id="step-ind-5">
+        <div class="step-num">5</div>
+        <div class="step-label">Listo</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: Center info -->
+    <div class="panel active" id="panel-1">
+      <div class="panel-title">📍 Información del centro</div>
+      <div class="panel-desc">Estos datos aparecerán en el formulario y en las notificaciones de WhatsApp.</div>
+
+      <div class="field">
+        <label for="campaign">Nombre de la campaña</label>
+        <input type="text" id="campaign" placeholder="Ej: Donativos Terremoto Manabí 2025" />
+        <div class="hint">Aparecerá en el encabezado del formulario y en los mensajes de WhatsApp.</div>
+      </div>
+
+      <div class="field">
+        <label for="center">Nombre del centro de acopio</label>
+        <input type="text" id="center" placeholder="Ej: Centro Norte — Guayaquil" />
+        <div class="hint">Identifica este centro específico.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: WhatsApp -->
+    <div class="panel" id="panel-2">
+      <div class="panel-title">📧 Emails de los líderes</div>
+      <div class="panel-desc">Agrega hasta 3 correos electrónicos. Recibirán notificaciones automáticas cuando se registre una entrega y cuando se suba evidencia.</div>
+
+      <div class="field">
+        <label>Email líder 1</label>
+        <div class="ws-row">
+          <input type="email" id="email1" placeholder="lider1@gmail.com" />
+          <span class="ws-badge">Principal</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Email líder 2 <span class="opt">(opcional)</span></label>
+        <div class="ws-row">
+          <input type="email" id="email2" placeholder="lider2@gmail.com" />
+          <span class="ws-badge opt-badge">Opcional</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Email líder 3 <span class="opt">(opcional)</span></label>
+        <div class="ws-row">
+          <input type="email" id="email3" placeholder="lider3@gmail.com" />
+          <span class="ws-badge opt-badge">Opcional</span>
+        </div>
+      </div>
+
+      <div class="callmebot-info">
+        <strong>ℹ️ ¿Cómo funcionan los emails?</strong>
+        Los correos se envían automáticamente desde la cuenta de Google donde instalaste el Apps Script.
+        No se necesita ninguna configuración adicional — Gmail lo maneja internamente.<br><br>
+        Los líderes recibirán un email cuando:<br>
+        • Alguien registre una nueva entrega<br>
+        • Se suba una foto o video de evidencia
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(1)">← Atrás</button>
+        <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Google -->
+    <div class="panel" id="panel-3">
+      <div class="panel-title">📊 Cuenta de Google</div>
+      <div class="panel-desc">El sistema creará automáticamente una hoja de cálculo y carpeta en Drive usando la cuenta donde instales el Apps Script.</div>
+
+      <div class="field">
+        <label for="gmail">Email de Google (cuenta del organizador)</label>
+        <input type="email" id="gmail" placeholder="organizador@gmail.com" />
+        <div class="hint">Esta cuenta debe ser la misma donde pegarás el código de Google Apps Script en el siguiente paso. Los datos del Sheets y las fotos en Drive quedarán en esta cuenta.</div>
+      </div>
+
+      <div class="field">
+        <label for="script-url">URL del Web App (Apps Script) <span class="opt">(lo obtienes en el paso 4)</span></label>
+        <input type="url" id="script-url" placeholder="https://script.google.com/macros/s/XXXXX/exec" />
+        <div class="hint">Después de publicar el Apps Script como Web App, pega la URL aquí. Puedes volver a este paso.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(2)">← Atrás</button>
+        <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Generated Code -->
+    <div class="panel" id="panel-4">
+      <div class="panel-title">💻 Tu configuración generada</div>
+      <div class="panel-desc">Copia este bloque y pégalo al inicio del archivo <strong>Code.gs</strong> en Google Apps Script, reemplazando el bloque CONFIG existente.</div>
+
+      <div class="output-panel">
+        <div class="output-label">Code.gs — Bloque CONFIG</div>
+        <div class="output-code" id="output-config">// Generando...</div>
+        <button class="btn-copy-block" onclick="copyConfig()">📋 Copiar configuración</button>
+      </div>
+
+      <div class="output-panel" style="margin-top:16px">
+        <div class="output-label">form.html y upload.html — Bloque APP_CONFIG</div>
+        <div class="output-code" id="output-html">// Generando...</div>
+        <button class="btn-copy-block" onclick="copyHtml()">📋 Copiar configuración HTML</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(3)">← Atrás</button>
+        <button class="btn-next" onclick="goStep(5)">Ya pegué el código →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Final checklist -->
+    <div class="panel" id="panel-5">
+      <div class="panel-title">🎉 ¡Casi listo!</div>
+      <div class="panel-desc">Sigue estos últimos pasos para tener el sistema funcionando:</div>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">1</div>
+          <div class="check-text">
+            <strong>Publica el Apps Script como Web App</strong>
+            En Google Apps Script → Implementar → Nueva implementación → Tipo: App web → Ejecutar como: Yo → Acceso: Cualquier persona. Copia la URL y pégala en el Paso 3.
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">2</div>
+          <div class="check-text">
+            <strong>Verifica los emails de los líderes</strong>
+            Los correos se envían desde la cuenta de Google del Apps Script. Asegúrate de haber ingresado los emails correctos en el Paso 2. No se necesita ninguna otra configuración.
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">3</div>
+          <div class="check-text">
+            <strong>Pega la URL del Web App en form.html y upload.html</strong>
+            Reemplaza el campo <code>SCRIPT_URL: ""</code> con tu URL en ambos archivos.
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">4</div>
+          <div class="check-text">
+            <strong>Sube form.html a un hosting o usa GitHub Pages</strong>
+            Puedes usar <a class="link" href="https://pages.github.com" target="_blank">GitHub Pages</a> (gratis) o cualquier hosting. Ese link será la URL de tu QR.
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">5</div>
+          <div class="check-text">
+            <strong>Genera el código QR</strong>
+            Usa <a class="link" href="https://qr.io" target="_blank">qr.io</a> o <a class="link" href="https://www.qrcode-monkey.com" target="_blank">qrcode-monkey.com</a> con la URL de tu form.html. Imprime y coloca en el centro.
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">6</div>
+          <div class="check-text">
+            <strong>Haz una prueba completa</strong>
+            Llena el formulario, guarda el enlace en WhatsApp, y sube una foto de prueba. Verifica que el Sheets y el Drive tengan los datos correctos.
+          </div>
+        </div>
+      </div>
+
+      <div class="qr-note">
+        <strong>📁 ¿Dónde están tus archivos?</strong><br>
+        Los archivos que debes alojar son: <code>form.html</code> y <code>upload.html</code>. El <code>Code.gs</code> va en Google Apps Script — no se aloja como archivo.
+      </div>
+    </div>
+
+  </div><!-- /container -->
+
+  <script>
+    let currentStep = 1;
+
+    function goStep(n) {
+      // Validate current step
+      if (n > currentStep) {
+        if (!validateStep(currentStep)) return;
+      }
+
+      // Generate code when reaching step 4
+      if (n === 4) generateCode();
+
+      document.getElementById(`panel-${currentStep}`).classList.remove('active');
+      document.getElementById(`panel-${n}`).classList.add('active');
+
+      // Update indicators
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`step-ind-${i}`);
+        el.classList.remove('active','complete');
+        if (i < n)  el.classList.add('complete');
+        if (i === n) el.classList.add('active');
+        if (i < n)  el.querySelector('.step-num').textContent = '✓';
+        else        el.querySelector('.step-num').textContent = i;
+      }
+
+      currentStep = n;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateStep(step) {
+      if (step === 1) {
+        if (!document.getElementById('campaign').value.trim()) {
+          alert('Por favor ingresa el nombre de la campaña.');
+          return false;
+        }
+        if (!document.getElementById('center').value.trim()) {
+          alert('Por favor ingresa el nombre del centro de acopio.');
+          return false;
+        }
+      }
+      if (step === 2) {
+        if (!document.getElementById('email1').value.trim()) {
+          alert('Ingresa al menos el email del líder principal.');
+          return false;
+        }
+      }
+      if (step === 3) {
+        if (!document.getElementById('gmail').value.trim()) {
+          alert('Ingresa el email de Google del organizador.');
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function buildEmailArray() {
+      const emails = [];
+      [1,2,3].forEach(i => {
+        const e = document.getElementById(`email${i}`).value.trim();
+        if (e) emails.push(`"${e}"`);
+      });
+      return emails;
+    }
+
+    function generateCode() {
+      const campaign = document.getElementById('campaign').value.trim();
+      const center   = document.getElementById('center').value.trim();
+      const scriptUrl = document.getElementById('script-url').value.trim();
+      const emails = buildEmailArray();
+
+      const config = `const CONFIG = {
+  CAMPAIGN_NAME:   "${campaign}",
+  CENTER_NAME:     "${center}",
+  LEADER_EMAILS:   [${emails.join(', ')}],
+  SHEET_ID:        "",   // auto-created on first run
+  FOLDER_ID:       "",   // auto-created on first run
+  DEPLOYED_URL:    "${scriptUrl}",
+};`;
+
+      const htmlConfig = `window.APP_CONFIG = {
+  SCRIPT_URL:    "${scriptUrl}",
+  CAMPAIGN_NAME: "${campaign}",
+  CENTER_NAME:   "${center}",
+};`;
+
+      document.getElementById('output-config').textContent = config;
+      document.getElementById('output-html').textContent   = htmlConfig;
+    }
+
+    function copyConfig() {
+      navigator.clipboard.writeText(document.getElementById('output-config').textContent)
+        .then(() => flashBtn(event.target, '✅ Copiado'));
+    }
+    function copyHtml() {
+      navigator.clipboard.writeText(document.getElementById('output-html').textContent)
+        .then(() => flashBtn(event.target, '✅ Copiado'));
+    }
+    function flashBtn(btn, text) {
+      const orig = btn.textContent;
+      btn.textContent = text;
+      setTimeout(() => btn.textContent = orig, 2500);
+    }
+  </script>
+</body>
+</html>

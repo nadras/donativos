@@ -1,0 +1,273 @@
+// ============================================================
+//  DONATIVOS SYSTEM — Google Apps Script Backend
+//  Copy this entire file into your Google Apps Script project
+// ============================================================
+
+// ── CONFIG (filled automatically by setup wizard, or edit manually) ──────────
+const CONFIG = {
+  CAMPAIGN_NAME:  "Donativos",          // e.g. "Terremoto Manta 2025"
+  CENTER_NAME:    "Centro de Acopio",   // e.g. "Centro Norte"
+  LEADER_EMAILS:  ["lider@gmail.com"],  // Up to 3 leader email addresses
+  SHEET_ID:       "",                   // Leave blank → auto-created on first run
+  FOLDER_ID:      "",                   // Leave blank → auto-created on first run
+  DEPLOYED_URL:   "",                   // Set this after you deploy as Web App
+};
+
+// ── SHEET COLUMNS ─────────────────────────────────────────────────────────────
+const COLS = {
+  TOKEN:       1,
+  TIMESTAMP:   2,
+  CEDULA:      3,
+  NOMBRE:      4,
+  CELULAR:     5,
+  DESTINO:     6,
+  STATUS:      7,
+  PHOTO1_URL:  8,
+  PHOTO2_URL:  9,
+  VIDEO_URL:   10,
+  NOTE:        11,
+  UPLOAD_TIME: 12,
+};
+
+// ── ENTRY POINTS ──────────────────────────────────────────────────────────────
+
+function doGet(e) {
+  const action = e.parameter.action || "";
+
+  if (action === "ping") {
+    return jsonResponse({ ok: true, center: CONFIG.CENTER_NAME });
+  }
+
+  // Serve upload page data by token
+  if (action === "getToken") {
+    return handleGetToken(e.parameter.token);
+  }
+
+  return jsonResponse({ error: "Unknown action" });
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action || "";
+
+    if (action === "register")    return handleRegister(data);
+    if (action === "uploadMedia") return handleUploadMedia(data);
+
+    return jsonResponse({ error: "Unknown action" });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
+}
+
+// ── REGISTER HANDLER ──────────────────────────────────────────────────────────
+
+function handleRegister(data) {
+  const sheet = getSheet();
+  const token = generateToken();
+  const now   = new Date();
+
+  const row = new Array(12).fill("");
+  row[COLS.TOKEN       - 1] = token;
+  row[COLS.TIMESTAMP   - 1] = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+  row[COLS.CEDULA      - 1] = data.cedula   || "";
+  row[COLS.NOMBRE      - 1] = data.nombre   || "";
+  row[COLS.CELULAR     - 1] = data.celular  || "";
+  row[COLS.DESTINO     - 1] = data.destino  || "";
+  row[COLS.STATUS      - 1] = "Registrado";
+
+  sheet.appendRow(row);
+
+  // Notify leaders via email
+  const regSubject = `✅ Nueva entrega — ${data.nombre} → ${data.destino} | ${CONFIG.CENTER_NAME}`;
+  const regBody =
+    `Se registró una nueva entrega en el sistema.\n\n` +
+    `Campaña:  ${CONFIG.CAMPAIGN_NAME}\n` +
+    `Centro:   ${CONFIG.CENTER_NAME}\n` +
+    `──────────────────────────────\n` +
+    `Nombre:   ${data.nombre}\n` +
+    `Cédula:   ${data.cedula}\n` +
+    `Celular:  ${data.celular}\n` +
+    `Destino:  ${data.destino}\n` +
+    `Fecha:    ${Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")}\n` +
+    `──────────────────────────────\n` +
+    `Estado: Registrado — pendiente evidencia de entrega.\n\n` +
+    `Mensaje generado automáticamente por el Sistema de Donativos.`;
+
+  notifyLeaders(regSubject, regBody);
+
+  const uploadLink = `${CONFIG.DEPLOYED_URL}?page=upload&token=${token}`;
+
+  return jsonResponse({ ok: true, token, uploadLink });
+}
+
+// ── UPLOAD MEDIA HANDLER ───────────────────────────────────────────────────────
+
+function handleUploadMedia(data) {
+  const token = data.token;
+  if (!token) return jsonResponse({ error: "Token requerido" });
+
+  const sheet = getSheet();
+  const rows  = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  let rowData  = null;
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][COLS.TOKEN - 1] === token) {
+      rowIndex = i + 1; // 1-based for Sheets
+      rowData  = rows[i];
+      break;
+    }
+  }
+
+  if (rowIndex === -1) return jsonResponse({ error: "Token no encontrado" });
+
+  const folder = getDriveFolder();
+  const nombre = rowData[COLS.NOMBRE - 1] || "Donante";
+  const destino = rowData[COLS.DESTINO - 1] || "Destino";
+  const subFolder = folder.createFolder(`${nombre} — ${destino} — ${token.slice(0,6)}`);
+
+  let photo1Url = "", photo2Url = "", videoUrl = "";
+
+  if (data.photo1) {
+    const blob = Utilities.newBlob(Utilities.base64Decode(data.photo1), data.photo1Type || "image/jpeg", "foto1.jpg");
+    const file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    photo1Url = `https://drive.google.com/file/d/${file.getId()}/view`;
+  }
+
+  if (data.photo2) {
+    const blob = Utilities.newBlob(Utilities.base64Decode(data.photo2), data.photo2Type || "image/jpeg", "foto2.jpg");
+    const file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    photo2Url = `https://drive.google.com/file/d/${file.getId()}/view`;
+  }
+
+  if (data.video) {
+    const blob = Utilities.newBlob(Utilities.base64Decode(data.video), data.videoType || "video/mp4", "video.mp4");
+    const file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    videoUrl = `https://drive.google.com/file/d/${file.getId()}/view`;
+  }
+
+  // Update sheet row
+  const now = new Date();
+  sheet.getRange(rowIndex, COLS.STATUS      ).setValue("Entregado ✅");
+  sheet.getRange(rowIndex, COLS.PHOTO1_URL  ).setValue(photo1Url);
+  sheet.getRange(rowIndex, COLS.PHOTO2_URL  ).setValue(photo2Url);
+  sheet.getRange(rowIndex, COLS.VIDEO_URL   ).setValue(videoUrl);
+  sheet.getRange(rowIndex, COLS.NOTE        ).setValue(data.note || "");
+  sheet.getRange(rowIndex, COLS.UPLOAD_TIME ).setValue(
+    Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")
+  );
+
+  // Notify leaders via email
+  const mediaList = [
+    photo1Url ? "Foto 1: " + photo1Url : null,
+    photo2Url ? "Foto 2: " + photo2Url : null,
+    videoUrl  ? "Video:  " + videoUrl  : null,
+  ].filter(Boolean).join("\n");
+
+  const upSubject = `📸 Evidencia recibida — ${nombre} → ${destino} | ${CONFIG.CENTER_NAME}`;
+  const upBody =
+    `Se subió evidencia de entrega.\n\n` +
+    `Campaña:  ${CONFIG.CAMPAIGN_NAME}\n` +
+    `Centro:   ${CONFIG.CENTER_NAME}\n` +
+    `──────────────────────────────\n` +
+    `Nombre:   ${nombre}\n` +
+    `Destino:  ${destino}\n` +
+    `Fecha:    ${Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")}\n` +
+    `──────────────────────────────\n` +
+    `Archivos subidos:\n${mediaList}\n` +
+    (data.note ? `\nNota del donante:\n${data.note}\n` : "") +
+    `\nMensaje generado automáticamente por el Sistema de Donativos.`;
+
+  notifyLeaders(upSubject, upBody);
+
+  return jsonResponse({ ok: true });
+}
+
+// ── GET TOKEN INFO (for upload page pre-fill) ─────────────────────────────────
+
+function handleGetToken(token) {
+  if (!token) return jsonResponse({ error: "Token requerido" });
+
+  const sheet = getSheet();
+  const rows  = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][COLS.TOKEN - 1] === token) {
+      return jsonResponse({
+        ok:      true,
+        nombre:  rows[i][COLS.NOMBRE  - 1],
+        destino: rows[i][COLS.DESTINO - 1],
+        status:  rows[i][COLS.STATUS  - 1],
+      });
+    }
+  }
+
+  return jsonResponse({ error: "Token no encontrado" });
+}
+
+// ── EMAIL NOTIFICATIONS ──────────────────────────────────────────────────────
+
+function notifyLeaders(subject, body) {
+  CONFIG.LEADER_EMAILS.forEach(email => {
+    if (!email || email === "lider@gmail.com") return;
+    try {
+      GmailApp.sendEmail(email, subject, body);
+    } catch (err) {
+      Logger.log(`Email error for ${email}: ${err.message}`);
+    }
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function generateToken() {
+  return Utilities.getUuid().replace(/-/g, "").slice(0, 16).toUpperCase();
+}
+
+function getSheet() {
+  let ss;
+
+  if (CONFIG.SHEET_ID) {
+    ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  } else {
+    // Auto-create on first run
+    ss = SpreadsheetApp.create(`${CONFIG.CAMPAIGN_NAME} — ${CONFIG.CENTER_NAME}`);
+    CONFIG.SHEET_ID = ss.getId();
+    PropertiesService.getScriptProperties().setProperty("SHEET_ID", ss.getId());
+
+    // Write headers
+    const sheet = ss.getActiveSheet();
+    sheet.setName("Registros");
+    sheet.appendRow([
+      "Token", "Fecha Registro", "Cédula", "Nombre", "Celular",
+      "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Nota", "Fecha Entrega"
+    ]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1B4332").setFontColor("#ffffff");
+    return sheet;
+  }
+
+  return ss.getSheets()[0];
+}
+
+function getDriveFolder() {
+  const savedId = PropertiesService.getScriptProperties().getProperty("FOLDER_ID") || CONFIG.FOLDER_ID;
+
+  if (savedId) {
+    try { return DriveApp.getFolderById(savedId); } catch(e) {}
+  }
+
+  const folder = DriveApp.createFolder(`📦 ${CONFIG.CAMPAIGN_NAME} — ${CONFIG.CENTER_NAME}`);
+  PropertiesService.getScriptProperties().setProperty("FOLDER_ID", folder.getId());
+  return folder;
+}
+
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
