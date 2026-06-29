@@ -64,7 +64,7 @@ function doPost(e) {
 // Run this once manually from the Apps Script editor after pasting the code.
 // It forces Google to show the OAuth permission prompt for GmailApp before real donations arrive.
 function grantEmailPermission() {
-  const recipient = Session.getActiveUser().getEmail() || CONFIG.LEADER_EMAILS.find(email => email && email !== "lider@gmail.com");
+  const recipient = Session.getEffectiveUser().getEmail() || CONFIG.LEADER_EMAILS.find(email => email && email !== "lider@gmail.com");
   if (!recipient) throw new Error("Configura al menos un email válido antes de autorizar Gmail.");
 
   GmailApp.sendEmail(
@@ -72,6 +72,26 @@ function grantEmailPermission() {
     "Sistema de Donativos — permiso de email autorizado",
     "Listo. La cuenta de Google autorizó el envío de notificaciones por email para el Sistema de Donativos."
   );
+}
+
+// Run this manually if you want to verify that leader emails are configured and authorized.
+function testEmailNotifications() {
+  const result = notifyLeaders(
+    `Prueba de correo — ${CONFIG.CENTER_NAME}`,
+    `Este es un correo de prueba del Sistema de Donativos.\n\nCampaña: ${CONFIG.CAMPAIGN_NAME}\nCentro: ${CONFIG.CENTER_NAME}`
+  );
+
+  Logger.log(JSON.stringify(result));
+
+  if (!result.sent.length) {
+    throw new Error("No se envió ningún email. Revisa CONFIG.LEADER_EMAILS y que no siga usando lider@gmail.com.");
+  }
+
+  if (result.errors.length) {
+    throw new Error("Algunos emails fallaron: " + JSON.stringify(result.errors));
+  }
+
+  return result;
 }
 
 // ── REGISTER HANDLER ──────────────────────────────────────────────────────────
@@ -127,7 +147,7 @@ function handleUploadMedia(data) {
   let rowData  = null;
 
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][COLS.TOKEN - 1] === token) {
+    if (normalizeToken(rows[i][COLS.TOKEN - 1]) === normalizeToken(token)) {
       rowIndex = i + 1; // 1-based for Sheets
       rowData  = rows[i];
       break;
@@ -210,7 +230,7 @@ function handleGetToken(token) {
   const rows  = sheet.getDataRange().getValues();
 
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][COLS.TOKEN - 1] === token) {
+    if (normalizeToken(rows[i][COLS.TOKEN - 1]) === normalizeToken(token)) {
       return jsonResponse({
         ok:      true,
         nombre:  rows[i][COLS.NOMBRE  - 1],
@@ -226,17 +246,35 @@ function handleGetToken(token) {
 // ── EMAIL NOTIFICATIONS ──────────────────────────────────────────────────────
 
 function notifyLeaders(subject, body) {
-  CONFIG.LEADER_EMAILS.forEach(email => {
-    if (!email || email === "lider@gmail.com") return;
+  const result = { sent: [], skipped: [], errors: [] };
+
+  CONFIG.LEADER_EMAILS.forEach(rawEmail => {
+    const email = String(rawEmail || "").trim();
+
+    if (!email || email === "lider@gmail.com") {
+      result.skipped.push(email || "empty");
+      return;
+    }
+
     try {
       GmailApp.sendEmail(email, subject, body);
+      result.sent.push(email);
     } catch (err) {
-      Logger.log(`Email error for ${email}: ${err.message}`);
+      const message = err && err.message ? err.message : String(err);
+      result.errors.push({ email, message });
+      Logger.log(`Email error for ${email}: ${message}`);
     }
   });
+
+  Logger.log(`Email notification result: ${JSON.stringify(result)}`);
+  return result;
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function normalizeToken(value) {
+  return String(value || "").trim().toUpperCase();
+}
 
 function buildUploadLink(token) {
   const uploadPageUrl = (CONFIG.UPLOAD_PAGE_URL || "").trim();
@@ -258,29 +296,27 @@ function generateToken() {
 }
 
 function getSheet() {
-  let ss;
+  const savedSheetId = PropertiesService.getScriptProperties().getProperty("SHEET_ID") || CONFIG.SHEET_ID;
 
-  if (CONFIG.SHEET_ID) {
-    ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  } else {
-    // Auto-create on first run
-    ss = SpreadsheetApp.create(`${CONFIG.CAMPAIGN_NAME} — ${CONFIG.CENTER_NAME}`);
-    CONFIG.SHEET_ID = ss.getId();
+  if (savedSheetId) {
+    const ss = SpreadsheetApp.openById(savedSheetId);
     PropertiesService.getScriptProperties().setProperty("SHEET_ID", ss.getId());
-
-    // Write headers
-    const sheet = ss.getActiveSheet();
-    sheet.setName("Registros");
-    sheet.appendRow([
-      "Token", "Fecha Registro", "Cédula", "Nombre", "Celular",
-      "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Nota", "Fecha Entrega"
-    ]);
-    sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1B4332").setFontColor("#ffffff");
-    return sheet;
+    return ss.getSheets()[0];
   }
 
-  return ss.getSheets()[0];
+  // Auto-create only once, then persist the ID in Script Properties.
+  const ss = SpreadsheetApp.create(`${CONFIG.CAMPAIGN_NAME} — ${CONFIG.CENTER_NAME}`);
+  PropertiesService.getScriptProperties().setProperty("SHEET_ID", ss.getId());
+
+  const sheet = ss.getActiveSheet();
+  sheet.setName("Registros");
+  sheet.appendRow([
+    "Token", "Fecha Registro", "Cédula", "Nombre", "Celular",
+    "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Nota", "Fecha Entrega"
+  ]);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1B4332").setFontColor("#ffffff");
+  return sheet;
 }
 
 function getDriveFolder() {
