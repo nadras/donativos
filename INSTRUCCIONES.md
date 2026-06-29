@@ -21,20 +21,22 @@
 
 ### 1.2 Ejecuta el asistente de configuración
 1. Abre `setup.html` en tu navegador (doble clic)
-2. Completa los 5 pasos del asistente
+2. Completa los 6 pasos del asistente
 3. En el **Paso 4**, copia el bloque CONFIG generado
 4. Pégalo al inicio de tu `Code.gs` en Apps Script, **reemplazando** el bloque CONFIG existente
 5. Guarda el proyecto (Ctrl+S o ⌘+S)
 
 ---
 
-## PASO 2 — Emails de los líderes (sin configuración extra)
+## PASO 2 — Emails de los líderes y autorización de Gmail
 
-Los correos se envían automáticamente usando **GmailApp**, un servicio nativo de Google Apps Script. No se necesita ninguna API externa ni activación.
+Los correos se envían automáticamente usando **GmailApp**, un servicio nativo de Google Apps Script. No se necesita ninguna API externa, pero sí debes autorizar Gmail una vez.
 
-Solo asegúrate de:
+Asegúrate de:
 1. Ingresar los emails correctos de los líderes en el **Paso 2 del asistente**
-2. Que la cuenta de Google donde instalaste el Apps Script tenga Gmail activo (todas las cuentas Gmail lo tienen)
+2. Pegar el código en Apps Script y guardar
+3. Seleccionar la función `grantEmailPermission` en Apps Script y hacer clic en **Ejecutar**
+4. Aceptar los permisos de Gmail cuando Google lo solicite
 
 > ✅ Cuando alguien registre una entrega, los líderes recibirán un email al instante. Lo mismo cuando se suba evidencia fotográfica.
 
@@ -52,7 +54,7 @@ Solo asegúrate de:
 5. Acepta los permisos cuando te los pida (esto es normal y necesario)
 6. Copia la **URL del Web App** que aparece (empieza con `https://script.google.com/macros/s/...`)
 
-> 📌 **Guarda esta URL** — la necesitas en el siguiente paso.
+> 📌 **Guarda esta URL** — la necesitas en el Paso 5 del asistente.
 
 ---
 
@@ -68,13 +70,13 @@ window.APP_CONFIG = {
 };
 ```
 
-Y pega la URL del Web App entre las comillas. También puedes copiar el bloque completo generado en el **Paso 4** del asistente de configuración.
+Pega la URL del Web App entre las comillas o copia el bloque completo generado en el **Paso 5** del asistente de configuración.
 
 ### 4.2 También en Code.gs
-Asegúrate de que `DEPLOYED_URL` en el CONFIG tenga la URL del Web App:
+Asegúrate de que `UPLOAD_PAGE_URL` en el CONFIG tenga la URL pública de `upload.html` en GitHub Pages:
 
 ```javascript
-DEPLOYED_URL: "https://script.google.com/macros/s/TU_URL/exec",
+UPLOAD_PAGE_URL: "https://usuario.github.io/donativos/upload.html",
 ```
 
 Después de editar, guarda y vuelve a **Implementar → Administrar implementaciones → ✏️ Editar → Versión: Nueva versión → Actualizar**.
@@ -118,12 +120,12 @@ Antes de activar el sistema, haz una prueba de extremo a extremo:
 
 - [ ] Escanea el QR con tu teléfono
 - [ ] Llena el formulario con datos de prueba
-- [ ] Verifica que el líder recibe el WhatsApp de confirmación
+- [ ] Verifica que el líder recibe el email de confirmación
 - [ ] Guarda el enlace de subida en WhatsApp (usando el botón verde)
 - [ ] Abre el enlace, sube una foto real
 - [ ] Verifica que el Google Drive tiene la carpeta con la foto
 - [ ] Verifica que el Google Sheets tiene el registro completo con la URL de la foto
-- [ ] Verifica que el líder recibe el WhatsApp de "Evidencia Recibida"
+- [ ] Verifica que el líder recibe el email de "Evidencia Recibida"
 
 ---
 
@@ -169,7 +171,7 @@ El formulario y la subida de fotos requieren internet. El enlace se guarda en Wh
 **¿Qué pasa si el video es muy grande?**
 Videos mayores a ~50MB pueden fallar. Recomendamos máximo 1 minuto de video o comprimir antes de subir.
 
-**¿Puedo cambiar los líderes de WhatsApp después?**
+**¿Puedo cambiar los emails de líderes después?**
 Sí. Edita el bloque CONFIG en `Code.gs` y vuelve a publicar (Implementar → Actualizar).
 
 **¿El sistema soporta múltiples centros al mismo tiempo?**

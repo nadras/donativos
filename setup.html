@@ -357,7 +357,7 @@
       </div>
       <div class="step-item" id="step-ind-2">
         <div class="step-num">2</div>
-        <div class="step-label">WhatsApp</div>
+        <div class="step-label">Emails</div>
       </div>
       <div class="step-item" id="step-ind-3">
         <div class="step-num">3</div>
@@ -369,6 +369,10 @@
       </div>
       <div class="step-item" id="step-ind-5">
         <div class="step-num">5</div>
+        <div class="step-label">URLs</div>
+      </div>
+      <div class="step-item" id="step-ind-6">
+        <div class="step-num">6</div>
         <div class="step-label">Listo</div>
       </div>
     </div>
@@ -376,12 +380,12 @@
     <!-- STEP 1: Center info -->
     <div class="panel active" id="panel-1">
       <div class="panel-title">📍 Información del centro</div>
-      <div class="panel-desc">Estos datos aparecerán en el formulario y en las notificaciones de WhatsApp.</div>
+      <div class="panel-desc">Estos datos aparecerán en el formulario y en las notificaciones por email.</div>
 
       <div class="field">
         <label for="campaign">Nombre de la campaña</label>
         <input type="text" id="campaign" placeholder="Ej: Donativos Terremoto Manabí 2025" />
-        <div class="hint">Aparecerá en el encabezado del formulario y en los mensajes de WhatsApp.</div>
+        <div class="hint">Aparecerá en el encabezado del formulario y en los emails automáticos.</div>
       </div>
 
       <div class="field">
@@ -395,7 +399,7 @@
       </div>
     </div>
 
-    <!-- STEP 2: WhatsApp -->
+    <!-- STEP 2: Emails -->
     <div class="panel" id="panel-2">
       <div class="panel-title">📧 Emails de los líderes</div>
       <div class="panel-desc">Agrega hasta 3 correos electrónicos. Recibirán notificaciones automáticas cuando se registre una entrega y cuando se suba evidencia.</div>
@@ -427,7 +431,7 @@
       <div class="callmebot-info">
         <strong>ℹ️ ¿Cómo funcionan los emails?</strong>
         Los correos se envían automáticamente desde la cuenta de Google donde instalaste el Apps Script.
-        No se necesita ninguna configuración adicional — Gmail lo maneja internamente.<br><br>
+        Después de pegar el código en Apps Script, deberás ejecutar una función manual una sola vez para autorizar el envío desde Gmail.<br><br>
         Los líderes recibirán un email cuando:<br>
         • Alguien registre una nueva entrega<br>
         • Se suba una foto o video de evidencia
@@ -450,12 +454,6 @@
         <div class="hint">Esta cuenta debe ser la misma donde pegarás el código de Google Apps Script en el siguiente paso. Los datos del Sheets y las fotos en Drive quedarán en esta cuenta.</div>
       </div>
 
-      <div class="field">
-        <label for="script-url">URL del Web App (Apps Script) <span class="opt">(lo obtienes en el paso 4)</span></label>
-        <input type="url" id="script-url" placeholder="https://script.google.com/macros/s/XXXXX/exec" />
-        <div class="hint">Después de publicar el Apps Script como Web App, pega la URL aquí. Puedes volver a este paso.</div>
-      </div>
-
       <div class="btn-row">
         <button class="btn-back" onclick="goStep(2)">← Atrás</button>
         <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
@@ -464,29 +462,63 @@
 
     <!-- STEP 4: Generated Code -->
     <div class="panel" id="panel-4">
-      <div class="panel-title">💻 Tu configuración generada</div>
-      <div class="panel-desc">Copia este bloque y pégalo al inicio del archivo <strong>Code.gs</strong> en Google Apps Script, reemplazando el bloque CONFIG existente.</div>
+      <div class="panel-title">💻 Código inicial para Apps Script</div>
+      <div class="panel-desc">Copia este bloque y pégalo al inicio del archivo <strong>Code.gs</strong>, reemplazando el bloque CONFIG existente. Después ejecuta <code>grantEmailPermission</code> una vez para autorizar Gmail y publica el Web App.</div>
 
       <div class="output-panel">
-        <div class="output-label">Code.gs — Bloque CONFIG</div>
+        <div class="output-label">Code.gs — Bloque CONFIG inicial</div>
         <div class="output-code" id="output-config">// Generando...</div>
         <button class="btn-copy-block" onclick="copyConfig()">📋 Copiar configuración</button>
       </div>
 
-      <div class="output-panel" style="margin-top:16px">
-        <div class="output-label">form.html y upload.html — Bloque APP_CONFIG</div>
-        <div class="output-code" id="output-html">// Generando...</div>
-        <button class="btn-copy-block" onclick="copyHtml()">📋 Copiar configuración HTML</button>
-      </div>
-
       <div class="btn-row">
         <button class="btn-back" onclick="goStep(3)">← Atrás</button>
-        <button class="btn-next" onclick="goStep(5)">Ya pegué el código →</button>
+        <button class="btn-next" onclick="goStep(5)">Ya publiqué el Web App →</button>
       </div>
     </div>
 
-    <!-- STEP 5: Final checklist -->
+
+    <!-- STEP 5: Connect URLs -->
     <div class="panel" id="panel-5">
+      <div class="panel-title">🔗 Conectar URLs finales</div>
+      <div class="panel-desc">Ahora que ya publicaste el Web App y subiste <strong>upload.html</strong> a GitHub Pages, pega esas URLs aquí para generar la configuración final.</div>
+
+      <div class="field">
+        <label for="script-url">URL del Web App (Apps Script)</label>
+        <input type="url" id="script-url" placeholder="https://script.google.com/macros/s/XXXXX/exec" oninput="generateFinalConfig()" />
+        <div class="hint">La obtienes en Google Apps Script → Implementar → Administrar implementaciones.</div>
+      </div>
+
+      <div class="field">
+        <label for="upload-url">URL pública de upload.html</label>
+        <input type="url" id="upload-url" placeholder="https://usuario.github.io/donativos/upload.html" oninput="generateFinalConfig()" />
+        <div class="hint">Debe ser la URL de GitHub Pages donde vive <code>upload.html</code>, no la URL de Apps Script.</div>
+      </div>
+
+      <div class="output-panel">
+        <div class="output-label">Code.gs — Actualiza esta línea en CONFIG</div>
+        <div class="output-code" id="output-final-codegs">// Pega tus URLs para generar...</div>
+        <button class="btn-copy-block" onclick="copyFinalCodegs()">📋 Copiar línea Code.gs</button>
+      </div>
+
+      <div class="output-panel" style="margin-top:16px">
+        <div class="output-label">form.html y upload.html — Bloque APP_CONFIG</div>
+        <div class="output-code" id="output-html">// Pega tus URLs para generar...</div>
+        <button class="btn-copy-block" onclick="copyHtml()">📋 Copiar configuración HTML</button>
+      </div>
+
+      <div class="callmebot-info" style="margin-top:16px">
+        <strong>Importante:</strong> después de cambiar <code>UPLOAD_PAGE_URL</code> en <code>Code.gs</code>, actualiza la implementación del Web App para que el cambio quede publicado.
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-back" onclick="goStep(4)">← Atrás</button>
+        <button class="btn-next" onclick="goStep(6)">Finalizar →</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: Final checklist -->
+    <div class="panel" id="panel-6">
       <div class="panel-title">🎉 ¡Casi listo!</div>
       <div class="panel-desc">Sigue estos últimos pasos para tener el sistema funcionando:</div>
 
@@ -495,21 +527,21 @@
           <div class="check-num">1</div>
           <div class="check-text">
             <strong>Publica el Apps Script como Web App</strong>
-            En Google Apps Script → Implementar → Nueva implementación → Tipo: App web → Ejecutar como: Yo → Acceso: Cualquier persona. Copia la URL y pégala en el Paso 3.
+            En Google Apps Script → Implementar → Nueva implementación → Tipo: App web → Ejecutar como: Yo → Acceso: Cualquier persona. Copia la URL y pégala en el Paso 5.
           </div>
         </div>
         <div class="check-item">
           <div class="check-num">2</div>
           <div class="check-text">
             <strong>Verifica los emails de los líderes</strong>
-            Los correos se envían desde la cuenta de Google del Apps Script. Asegúrate de haber ingresado los emails correctos en el Paso 2. No se necesita ninguna otra configuración.
+            En Apps Script, selecciona la función <code>grantEmailPermission</code> y ejecútala una vez para aceptar los permisos de Gmail.
           </div>
         </div>
         <div class="check-item">
           <div class="check-num">3</div>
           <div class="check-text">
-            <strong>Pega la URL del Web App en form.html y upload.html</strong>
-            Reemplaza el campo <code>SCRIPT_URL: ""</code> con tu URL en ambos archivos.
+            <strong>Conecta las URLs finales</strong>
+            En el Paso 5, pega la URL del Web App y la URL pública de <code>upload.html</code>. Copia los bloques generados en <code>Code.gs</code>, <code>form.html</code> y <code>upload.html</code>.
           </div>
         </div>
         <div class="check-item">
@@ -552,14 +584,15 @@
         if (!validateStep(currentStep)) return;
       }
 
-      // Generate code when reaching step 4
+      // Generate code when reaching setup steps
       if (n === 4) generateCode();
+      if (n === 5 || n === 6) generateFinalConfig();
 
       document.getElementById(`panel-${currentStep}`).classList.remove('active');
       document.getElementById(`panel-${n}`).classList.add('active');
 
       // Update indicators
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 6; i++) {
         const el = document.getElementById(`step-ind-${i}`);
         el.classList.remove('active','complete');
         if (i < n)  el.classList.add('complete');
@@ -595,6 +628,16 @@
           return false;
         }
       }
+      if (step === 5) {
+        if (!document.getElementById('script-url').value.trim()) {
+          alert('Pega la URL del Web App de Apps Script.');
+          return false;
+        }
+        if (!document.getElementById('upload-url').value.trim()) {
+          alert('Pega la URL pública de upload.html en GitHub Pages.');
+          return false;
+        }
+      }
       return true;
     }
 
@@ -610,7 +653,6 @@
     function generateCode() {
       const campaign = document.getElementById('campaign').value.trim();
       const center   = document.getElementById('center').value.trim();
-      const scriptUrl = document.getElementById('script-url').value.trim();
       const emails = buildEmailArray();
 
       const config = `const CONFIG = {
@@ -619,8 +661,19 @@
   LEADER_EMAILS:   [${emails.join(', ')}],
   SHEET_ID:        "",   // auto-created on first run
   FOLDER_ID:       "",   // auto-created on first run
-  DEPLOYED_URL:    "${scriptUrl}",
+  UPLOAD_PAGE_URL: "",   // fill in Step 5 after upload.html is on GitHub Pages
 };`;
+
+      document.getElementById('output-config').textContent = config;
+    }
+
+    function generateFinalConfig() {
+      const campaign  = document.getElementById('campaign').value.trim();
+      const center    = document.getElementById('center').value.trim();
+      const scriptUrl = document.getElementById('script-url').value.trim();
+      const uploadUrl = document.getElementById('upload-url').value.trim();
+
+      document.getElementById('output-final-codegs').textContent = `UPLOAD_PAGE_URL: "${uploadUrl}",`;
 
       const htmlConfig = `window.APP_CONFIG = {
   SCRIPT_URL:    "${scriptUrl}",
@@ -628,12 +681,15 @@
   CENTER_NAME:   "${center}",
 };`;
 
-      document.getElementById('output-config').textContent = config;
-      document.getElementById('output-html').textContent   = htmlConfig;
+      document.getElementById('output-html').textContent = htmlConfig;
     }
 
     function copyConfig() {
       navigator.clipboard.writeText(document.getElementById('output-config').textContent)
+        .then(() => flashBtn(event.target, '✅ Copiado'));
+    }
+    function copyFinalCodegs() {
+      navigator.clipboard.writeText(document.getElementById('output-final-codegs').textContent)
         .then(() => flashBtn(event.target, '✅ Copiado'));
     }
     function copyHtml() {

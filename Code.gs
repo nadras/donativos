@@ -10,7 +10,7 @@ const CONFIG = {
   LEADER_EMAILS:  ["lider@gmail.com"],  // Up to 3 leader email addresses
   SHEET_ID:       "",                   // Leave blank → auto-created on first run
   FOLDER_ID:      "",                   // Leave blank → auto-created on first run
-  DEPLOYED_URL:   "",                   // Set this after you deploy as Web App
+  UPLOAD_PAGE_URL: "",                   // Public GitHub Pages URL for upload.html
 };
 
 // ── SHEET COLUMNS ─────────────────────────────────────────────────────────────
@@ -60,6 +60,20 @@ function doPost(e) {
   }
 }
 
+
+// Run this once manually from the Apps Script editor after pasting the code.
+// It forces Google to show the OAuth permission prompt for GmailApp before real donations arrive.
+function grantEmailPermission() {
+  const recipient = Session.getActiveUser().getEmail() || CONFIG.LEADER_EMAILS.find(email => email && email !== "lider@gmail.com");
+  if (!recipient) throw new Error("Configura al menos un email válido antes de autorizar Gmail.");
+
+  GmailApp.sendEmail(
+    recipient,
+    "Sistema de Donativos — permiso de email autorizado",
+    "Listo. La cuenta de Google autorizó el envío de notificaciones por email para el Sistema de Donativos."
+  );
+}
+
 // ── REGISTER HANDLER ──────────────────────────────────────────────────────────
 
 function handleRegister(data) {
@@ -96,7 +110,7 @@ function handleRegister(data) {
 
   notifyLeaders(regSubject, regBody);
 
-  const uploadLink = `${CONFIG.DEPLOYED_URL}?page=upload&token=${token}`;
+  const uploadLink = buildUploadLink(token);
 
   return jsonResponse({ ok: true, token, uploadLink });
 }
@@ -223,6 +237,21 @@ function notifyLeaders(subject, body) {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function buildUploadLink(token) {
+  const uploadPageUrl = (CONFIG.UPLOAD_PAGE_URL || "").trim();
+  const encodedToken = encodeURIComponent(token);
+
+  // upload.html lives on GitHub Pages, not inside the Apps Script Web App.
+  // Example: https://nadras.github.io/donativos/upload.html?token=ABC123
+  if (uploadPageUrl) {
+    const separator = uploadPageUrl.includes("?") ? "&" : "?";
+    return `${uploadPageUrl}${separator}token=${encodedToken}`;
+  }
+
+  // Fallback for local/same-folder testing.
+  return `upload.html?token=${encodedToken}`;
+}
 
 function generateToken() {
   return Utilities.getUuid().replace(/-/g, "").slice(0, 16).toUpperCase();
