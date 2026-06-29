@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subir Evidencia de Entrega</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-deep:   #1B4332;
+      --green-mid:    #2D6A4F;
+      --green-light:  #52B788;
+      --green-pale:   #D8F3DC;
+      --amber:        #F4A261;
+      --amber-dark:   #E76F51;
+      --off-white:    #F8FAF8;
+      --text-dark:    #1A2E1A;
+      --text-muted:   #5C7A5C;
+      --border:       #C8DFC8;
+      --error:        #C0392B;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--off-white);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 0 60px;
+    }
+
+    .header {
+      width: 100%;
+      background: var(--green-deep);
+      padding: 28px 24px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 24px;
+      background: var(--off-white);
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-icon { font-size: 40px; display: block; margin-bottom: 10px; }
+    .header h1 { color: #fff; font-size: 20px; font-weight: 700; }
+    .header p  { color: var(--green-pale); font-size: 13px; margin-top: 6px; }
+
+    .info-banner {
+      background: var(--green-pale);
+      border: 1px solid var(--green-light);
+      border-radius: 12px;
+      padding: 14px 16px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 24px;
+      font-size: 14px;
+    }
+    .info-banner strong { color: var(--green-deep); font-size: 15px; }
+    .info-banner span   { color: var(--text-muted); font-size: 13px; display: block; margin-top: 3px; }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 16px;
+      box-shadow: 0 2px 12px rgba(27,67,50,0.07);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--green-deep);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── UPLOAD ZONES ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 14px;
+      position: relative;
+      background: var(--off-white);
+    }
+    .upload-zone:hover { border-color: var(--green-light); background: var(--green-pale); }
+    .upload-zone.has-file { border-color: var(--green-light); border-style: solid; background: #f0fbf4; }
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon  { font-size: 28px; display: block; margin-bottom: 8px; }
+    .upload-label { font-size: 14px; font-weight: 600; color: var(--green-mid); }
+    .upload-hint  { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .upload-req   { font-size: 11px; color: var(--amber-dark); font-weight: 600; margin-top: 4px; }
+
+    .preview-wrap {
+      margin-top: 10px;
+      position: relative;
+      display: none;
+    }
+    .preview-wrap.show { display: block; }
+    .preview-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .preview-video {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .preview-name {
+      font-size: 12px;
+      color: var(--green-mid);
+      font-weight: 600;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-remove {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--error);
+      margin-left: auto;
+      padding: 2px 4px;
+    }
+
+    /* ── NOTE ── */
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+    }
+    label .opt { font-weight: 400; color: #aaa; font-size: 11px; }
+    textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-dark);
+      background: var(--off-white);
+      resize: vertical;
+      min-height: 90px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    textarea:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+      background: #fff;
+    }
+
+    /* ── VIDEO SIZE WARNING ── */
+    .video-warning {
+      background: #FFF8F0;
+      border: 1px solid var(--amber);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #7B3F00;
+      margin-bottom: 14px;
+    }
+
+    /* ── PROGRESS ── */
+    .progress-wrap {
+      display: none;
+      margin-top: 12px;
+    }
+    .progress-wrap.show { display: block; }
+    .progress-bar-bg {
+      background: var(--border);
+      border-radius: 20px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--green-light), var(--green-mid));
+      height: 100%;
+      border-radius: 20px;
+      transition: width .3s;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      width: 100%;
+      background: var(--green-mid);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .2s, transform .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-submit:hover  { background: var(--green-deep); }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    .btn-submit.loading .spinner  { display: inline-block; }
+    .btn-submit.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SUCCESS ── */
+    .success-card {
+      background: #fff;
+      border: 1px solid var(--green-pale);
+      border-radius: 16px;
+      padding: 40px 24px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 24px;
+      text-align: center;
+      display: none;
+    }
+    .success-card.show { display: block; }
+    .success-icon { font-size: 60px; margin-bottom: 14px; }
+    .success-card h2 { font-size: 22px; font-weight: 700; color: var(--green-deep); }
+    .success-card p  { color: var(--text-muted); font-size: 14px; margin-top: 10px; line-height: 1.6; }
+
+    /* ── INVALID TOKEN ── */
+    .error-card {
+      background: #fff;
+      border: 1px solid #F5C6CB;
+      border-radius: 16px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 24px;
+      text-align: center;
+      display: none;
+    }
+    .error-card.show { display: block; }
+
+    /* ── ALREADY UPLOADED ── */
+    .already-card {
+      background: #FFF8F0;
+      border: 1px solid var(--amber);
+      border-radius: 16px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 24px;
+      text-align: center;
+      display: none;
+    }
+    .already-card.show { display: block; }
+
+    @media (max-width: 480px) {
+      .card, .success-card, .error-card, .already-card, .info-banner {
+        border-radius: 12px;
+        margin-left: 12px;
+        margin-right: 12px;
+        width: calc(100% - 24px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    window.APP_CONFIG = {
+      SCRIPT_URL: "",  // ← Same URL as form.html
+    };
+  </script>
+
+  <div class="header">
+    <span class="header-icon">📸</span>
+    <h1>Subir evidencia de entrega</h1>
+    <p>Adjunta la foto o video de la donación entregada</p>
+  </div>
+
+  <!-- Donor info banner -->
+  <div class="info-banner" id="info-banner" style="display:none">
+    <strong id="info-nombre">—</strong>
+    <span id="info-destino">—</span>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="card" id="upload-card" style="display:none">
+    <div class="card-title">📷 Fotos de entrega</div>
+
+    <!-- Photo 1 (required) -->
+    <div class="upload-zone" id="zone-photo1" onclick="triggerFile('file-photo1')">
+      <input type="file" id="file-photo1" accept="image/*" capture="environment" onchange="handleFile(this,'photo1')" />
+      <span class="upload-icon">📷</span>
+      <div class="upload-label">Foto de entrega</div>
+      <div class="upload-req">Obligatoria</div>
+      <div class="upload-hint">Toca para tomar o seleccionar foto</div>
+    </div>
+    <div class="preview-wrap" id="preview-photo1">
+      <img class="preview-img" id="img-photo1" src="" alt="Foto 1" />
+      <div class="preview-name">
+        <span>✅ </span><span id="name-photo1">foto1</span>
+        <button class="btn-remove" onclick="removeFile('photo1')">✕</button>
+      </div>
+    </div>
+
+    <!-- Photo 2 (optional) -->
+    <div class="upload-zone" id="zone-photo2" onclick="triggerFile('file-photo2')">
+      <input type="file" id="file-photo2" accept="image/*" capture="environment" onchange="handleFile(this,'photo2')" />
+      <span class="upload-icon">📷</span>
+      <div class="upload-label">Segunda foto</div>
+      <div class="upload-hint">Opcional — toca para agregar</div>
+    </div>
+    <div class="preview-wrap" id="preview-photo2">
+      <img class="preview-img" id="img-photo2" src="" alt="Foto 2" />
+      <div class="preview-name">
+        <span>✅ </span><span id="name-photo2">foto2</span>
+        <button class="btn-remove" onclick="removeFile('photo2')">✕</button>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:6px">🎥 Video (opcional)</div>
+
+    <div class="video-warning">
+      ⏱ Recomendamos videos de máximo 1 minuto para garantizar una subida exitosa.
+    </div>
+
+    <!-- Video (optional) -->
+    <div class="upload-zone" id="zone-video" onclick="triggerFile('file-video')">
+      <input type="file" id="file-video" accept="video/*" onchange="handleFile(this,'video')" />
+      <span class="upload-icon">🎥</span>
+      <div class="upload-label">Video de entrega</div>
+      <div class="upload-hint">Opcional — máx. 1 minuto recomendado</div>
+    </div>
+    <div class="preview-wrap" id="preview-video">
+      <video class="preview-video" id="vid-video" controls></video>
+      <div class="preview-name">
+        <span>✅ </span><span id="name-video">video</span>
+        <button class="btn-remove" onclick="removeFile('video')">✕</button>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:6px">💬 Nota adicional</div>
+    <div class="field">
+      <label for="note">Mensaje para el organizador <span class="opt">(opcional)</span></label>
+      <textarea id="note" placeholder="Ej: La entrega fue recibida por la coordinadora del sector norte..."></textarea>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-label" id="progress-label">Subiendo archivos…</div>
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submitUpload()">
+      <span class="btn-text">📤 Enviar evidencia</span>
+      <div class="spinner"></div>
+    </button>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-card" id="success-card">
+    <div class="success-icon">🎉</div>
+    <h2>¡Evidencia enviada!</h2>
+    <p>Los archivos fueron recibidos correctamente. El organizador ha sido notificado.<br><br>¡Gracias por tu ayuda!</p>
+  </div>
+
+  <!-- ALREADY UPLOADED -->
+  <div class="already-card" id="already-card">
+    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+    <h2 style="font-size:18px;font-weight:700;color:#7B3F00">Ya se subió evidencia</h2>
+    <p style="color:#7B3F00;font-size:14px;margin-top:8px">Este enlace ya fue utilizado. Si necesitas agregar más fotos, contacta al organizador.</p>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-card" id="error-card">
+    <div style="font-size:48px;margin-bottom:12px">❌</div>
+    <h2 style="font-size:18px;font-weight:700;color:var(--error)">Enlace no válido</h2>
+    <p style="color:#666;font-size:14px;margin-top:8px">Este enlace no existe o ya expiró. Contacta al organizador para obtener uno nuevo.</p>
+  </div>
+
+  <script>
+    // ── STATE ────────────────────────────────────────────────────────────────
+    const files = { photo1: null, photo2: null, video: null };
+    let token = "";
+
+    // ── INIT ─────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      token = params.get('token') || "";
+
+      if (!token) { showState('error'); return; }
+
+      const scriptUrl = window.APP_CONFIG.SCRIPT_URL;
+      if (!scriptUrl) { showState('upload'); return; } // dev mode
+
+      try {
+        const res  = await fetch(`${scriptUrl}?action=getToken&token=${token}`);
+        const data = await res.json();
+
+        if (!data.ok) { showState('error'); return; }
+
+        if (data.status && data.status.toLowerCase().includes('entregado')) {
+          showState('already'); return;
+        }
+
+        document.getElementById('info-nombre').textContent  = data.nombre  || "Donante";
+        document.getElementById('info-destino').textContent = `📦 Destino: ${data.destino || ""}`;
+        document.getElementById('info-banner').style.display = 'block';
+        showState('upload');
+
+      } catch (e) {
+        showState('upload'); // fallback for dev
+      }
+    });
+
+    function showState(state) {
+      document.getElementById('upload-card').style.display  = state === 'upload'  ? 'block' : 'none';
+      document.getElementById('success-card').style.display = state === 'success' ? 'block' : 'none';
+      document.getElementById('already-card').style.display = state === 'already' ? 'block' : 'none';
+      document.getElementById('error-card').style.display   = state === 'error'   ? 'block' : 'none';
+    }
+
+    // ── FILE HANDLING ─────────────────────────────────────────────────────────
+    function triggerFile(id) {
+      document.getElementById(id).click();
+    }
+
+    function handleFile(input, key) {
+      const file = input.files[0];
+      if (!file) return;
+
+      files[key] = file;
+
+      const preview  = document.getElementById(`preview-${key}`);
+      const nameSpan = document.getElementById(`name-${key}`);
+      nameSpan.textContent = file.name;
+      preview.classList.add('show');
+
+      const zone = document.getElementById(`zone-${key}`);
+      zone.classList.add('has-file');
+
+      const url = URL.createObjectURL(file);
+
+      if (key === 'video') {
+        document.getElementById('vid-video').src = url;
+      } else {
+        document.getElementById(`img-${key}`).src = url;
+      }
+    }
+
+    function removeFile(key) {
+      files[key] = null;
+      document.getElementById(`preview-${key}`).classList.remove('show');
+      document.getElementById(`zone-${key}`).classList.remove('has-file');
+      document.getElementById(`file-${key}`).value = '';
+      if (key === 'video') {
+        document.getElementById('vid-video').src = '';
+      } else {
+        document.getElementById(`img-${key}`).src = '';
+      }
+    }
+
+    // ── SUBMIT ─────────────────────────────────────────────────────────────────
+    async function submitUpload() {
+      if (!files.photo1) {
+        alert('⚠️ La primera foto es obligatoria.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit');
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      const progressWrap  = document.getElementById('progress-wrap');
+      const progressFill  = document.getElementById('progress-fill');
+      const progressLabel = document.getElementById('progress-label');
+      progressWrap.classList.add('show');
+
+      try {
+        const payload = {
+          action: 'uploadMedia',
+          token,
+          note: document.getElementById('note').value.trim(),
+        };
+
+        // Convert files to base64
+        const fileKeys = ['photo1','photo2','video'];
+        let done = 0;
+        const total = fileKeys.filter(k => files[k]).length;
+
+        for (const key of fileKeys) {
+          if (!files[key]) continue;
+          progressLabel.textContent = `Convirtiendo ${key === 'video' ? 'video' : 'foto'}…`;
+          const b64 = await toBase64(files[key]);
+          payload[key]          = b64;
+          payload[`${key}Type`] = files[key].type;
+          done++;
+          progressFill.style.width = `${(done / total) * 50}%`;
+        }
+
+        progressLabel.textContent = 'Enviando al servidor…';
+        progressFill.style.width  = '60%';
+
+        const scriptUrl = window.APP_CONFIG.SCRIPT_URL;
+        const res  = await fetch(scriptUrl, {
+          method: 'POST',
+          body:   JSON.stringify(payload),
+        });
+
+        progressFill.style.width  = '90%';
+        const data = await res.json();
+
+        if (data.ok) {
+          progressFill.style.width = '100%';
+          progressLabel.textContent = '¡Listo!';
+          setTimeout(() => showState('success'), 600);
+        } else {
+          throw new Error(data.error || 'Error desconocido');
+        }
+
+      } catch (err) {
+        progressWrap.classList.remove('show');
+        alert('Error al enviar: ' + err.message + '\n\nVerifica tu internet e intenta de nuevo.');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
