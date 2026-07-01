@@ -51,7 +51,7 @@
     }
     .header-icon { font-size: 40px; display: block; margin-bottom: 10px; }
     .header h1 { color: #fff; font-size: 20px; font-weight: 700; }
-    .header p  { color: var(--green-pale); font-size: 13px; margin: 6px; }
+    .header p  { color: var(--green-pale); font-size: 13px; margin-top: 6px; }
 
     .info-banner {
       background: var(--green-pale);
@@ -319,7 +319,7 @@
 
   <script>
     window.APP_CONFIG = {
-      SCRIPT_URL:    "https://script.google.com/macros/s/AKfycbwuN5XMMRiCOEgF2avY08lM8jObCGSRrOwSnxjSq6mw_waxprK9aBUN3zagtnYHv39INg/exec",
+      SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwuN5XMMRiCOEgF2avY08lM8jObCGSRrOwSnxjSq6mw_waxprK9aBUN3zagtnYHv39INg/exec",  // Same URL as form.html
     };
   </script>
 
@@ -340,8 +340,8 @@
     <div class="card-title">📷 Fotos de entrega</div>
 
     <!-- Photo 1 (required) -->
-    <div class="upload-zone" id="zone-photo1" onclick="triggerFile('file-photo1')">
-      <input type="file" id="file-photo1" accept="image/*" capture="environment" onchange="handleFile(this,'photo1')" />
+    <div class="upload-zone" id="zone-photo1">
+      <input type="file" id="file-photo1" accept="image/*" capture="environment" onclick="event.stopPropagation()" onchange="handleFile(this,'photo1')" />
       <span class="upload-icon">📷</span>
       <div class="upload-label">Foto de entrega</div>
       <div class="upload-req">Obligatoria</div>
@@ -356,8 +356,8 @@
     </div>
 
     <!-- Photo 2 (optional) -->
-    <div class="upload-zone" id="zone-photo2" onclick="triggerFile('file-photo2')">
-      <input type="file" id="file-photo2" accept="image/*" capture="environment" onchange="handleFile(this,'photo2')" />
+    <div class="upload-zone" id="zone-photo2">
+      <input type="file" id="file-photo2" accept="image/*" capture="environment" onclick="event.stopPropagation()" onchange="handleFile(this,'photo2')" />
       <span class="upload-icon">📷</span>
       <div class="upload-label">Segunda foto</div>
       <div class="upload-hint">Opcional — toca para agregar</div>
@@ -377,8 +377,8 @@
     </div>
 
     <!-- Video (optional) -->
-    <div class="upload-zone" id="zone-video" onclick="triggerFile('file-video')">
-      <input type="file" id="file-video" accept="video/*" onchange="handleFile(this,'video')" />
+    <div class="upload-zone" id="zone-video">
+      <input type="file" id="file-video" accept="video/*" onclick="event.stopPropagation()" onchange="handleFile(this,'video')" />
       <span class="upload-icon">🎥</span>
       <div class="upload-label">Video de entrega</div>
       <div class="upload-hint">Opcional — máx. 1 minuto recomendado</div>

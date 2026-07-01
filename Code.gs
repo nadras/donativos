@@ -5,12 +5,12 @@
 
 // ── CONFIG (filled automatically by setup wizard, or edit manually) ──────────
 const CONFIG = {
-  CAMPAIGN_NAME:   "Ven",
-  CENTER_NAME:     "test4",
+  CAMPAIGN_NAME:   "Terremoto 2026",
+  CENTER_NAME:     "FCU - UCV",
   LEADER_EMAILS:   ["para.nadra@gmail.com"],
   SHEET_ID:        "",   // auto-created on first run
   FOLDER_ID:       "",   // auto-created on first run
-  UPLOAD_PAGE_URL: "",   // fill in Step 5 after upload.html is on GitHub Pages
+  UPLOAD_PAGE_URL: "https://nadras.github.io/donativos/upload.html",
 };
 
 // ── SHEET COLUMNS ─────────────────────────────────────────────────────────────
@@ -25,8 +25,9 @@ const COLS = {
   PHOTO1_URL:  8,
   PHOTO2_URL:  9,
   VIDEO_URL:   10,
-  NOTE:        11,
-  UPLOAD_TIME: 12,
+  FOLDER_URL:  11,
+  NOTE:        12,
+  UPLOAD_TIME: 13,
 };
 
 // ── ENTRY POINTS ──────────────────────────────────────────────────────────────
@@ -41,6 +42,11 @@ function doGet(e) {
   // Serve upload page data by token
   if (action === "getToken") {
     return handleGetToken(e.parameter.token);
+  }
+
+  // Autocomplete previous donor data by ID number
+  if (action === "getByCedula") {
+    return handleGetByCedula(e.parameter.cedula);
   }
 
   return jsonResponse({ error: "Unknown action" });
@@ -69,7 +75,7 @@ function grantEmailPermission() {
 
   GmailApp.sendEmail(
     recipient,
-    "Sistema de Donativos — permiso de email autorizado",
+    "Sistema de Donativos - permiso de email autorizado",
     "Listo. La cuenta de Google autorizó el envío de notificaciones por email para el Sistema de Donativos."
   );
 }
@@ -77,7 +83,7 @@ function grantEmailPermission() {
 // Run this manually if you want to verify that leader emails are configured and authorized.
 function testEmailNotifications() {
   const result = notifyLeaders(
-    `Prueba de correo — ${CONFIG.CENTER_NAME}`,
+    `Prueba de correo - ${CONFIG.CENTER_NAME}`,
     `Este es un correo de prueba del Sistema de Donativos.\n\nCampaña: ${CONFIG.CAMPAIGN_NAME}\nCentro: ${CONFIG.CENTER_NAME}`
   );
 
@@ -94,6 +100,18 @@ function testEmailNotifications() {
   return result;
 }
 
+
+// Run this manually to create/find the spreadsheet and Drive folder and print their URLs.
+function initializeSystem() {
+  const sheet = getSheet();
+  const folder = getDriveFolder();
+  const spreadsheetUrl = sheet.getParent().getUrl();
+  const folderUrl = `https://drive.google.com/drive/folders/${folder.getId()}`;
+  Logger.log("Spreadsheet URL: " + spreadsheetUrl);
+  Logger.log("Drive folder URL: " + folderUrl);
+  return { ok: true, spreadsheetUrl, folderUrl };
+}
+
 // ── REGISTER HANDLER ──────────────────────────────────────────────────────────
 
 function handleRegister(data) {
@@ -101,7 +119,7 @@ function handleRegister(data) {
   const token = generateToken();
   const now   = new Date();
 
-  const row = new Array(12).fill("");
+  const row = new Array(13).fill("");
   row[COLS.TOKEN       - 1] = token;
   row[COLS.TIMESTAMP   - 1] = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
   row[COLS.CEDULA      - 1] = data.cedula   || "";
@@ -113,7 +131,7 @@ function handleRegister(data) {
   sheet.appendRow(row);
 
   // Notify leaders via email
-  const regSubject = `✅ Nueva entrega — ${data.nombre} → ${data.destino} | ${CONFIG.CENTER_NAME}`;
+  const regSubject = `Nueva entrega - ${data.nombre} -> ${data.destino} | ${CONFIG.CENTER_NAME}`;
   const regBody =
     `Se registró una nueva entrega en el sistema.\n\n` +
     `Campaña:  ${CONFIG.CAMPAIGN_NAME}\n` +
@@ -160,6 +178,8 @@ function handleUploadMedia(data) {
   const nombre = rowData[COLS.NOMBRE - 1] || "Donante";
   const destino = rowData[COLS.DESTINO - 1] || "Destino";
   const subFolder = folder.createFolder(`${nombre} — ${destino} — ${token.slice(0,6)}`);
+  subFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const folderUrl = `https://drive.google.com/drive/folders/${subFolder.getId()}`;
 
   let photo1Url = "", photo2Url = "", videoUrl = "";
 
@@ -187,9 +207,10 @@ function handleUploadMedia(data) {
   // Update sheet row
   const now = new Date();
   sheet.getRange(rowIndex, COLS.STATUS      ).setValue("Entregado ✅");
-  sheet.getRange(rowIndex, COLS.PHOTO1_URL  ).setValue(photo1Url);
-  sheet.getRange(rowIndex, COLS.PHOTO2_URL  ).setValue(photo2Url);
-  sheet.getRange(rowIndex, COLS.VIDEO_URL   ).setValue(videoUrl);
+  setLinkCell(sheet, rowIndex, COLS.PHOTO1_URL, photo1Url, photo1Url ? "Ver foto 1" : "");
+  setLinkCell(sheet, rowIndex, COLS.PHOTO2_URL, photo2Url, photo2Url ? "Ver foto 2" : "");
+  setLinkCell(sheet, rowIndex, COLS.VIDEO_URL, videoUrl, videoUrl ? "Ver video" : "");
+  setLinkCell(sheet, rowIndex, COLS.FOLDER_URL, folderUrl, "Ver carpeta");
   sheet.getRange(rowIndex, COLS.NOTE        ).setValue(data.note || "");
   sheet.getRange(rowIndex, COLS.UPLOAD_TIME ).setValue(
     Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")
@@ -200,9 +221,10 @@ function handleUploadMedia(data) {
     photo1Url ? "Foto 1: " + photo1Url : null,
     photo2Url ? "Foto 2: " + photo2Url : null,
     videoUrl  ? "Video:  " + videoUrl  : null,
+    folderUrl ? "Carpeta: " + folderUrl : null,
   ].filter(Boolean).join("\n");
 
-  const upSubject = `Evidencia recibida — ${nombre} → ${destino} | ${CONFIG.CENTER_NAME}`;
+  const upSubject = `Evidencia recibida - ${nombre} -> ${destino} | ${CONFIG.CENTER_NAME}`;
   const upBody =
     `Se subió evidencia de entrega.\n\n` +
     `Campaña:  ${CONFIG.CAMPAIGN_NAME}\n` +
@@ -219,6 +241,33 @@ function handleUploadMedia(data) {
   notifyLeaders(upSubject, upBody);
 
   return jsonResponse({ ok: true });
+}
+
+
+// ── GET PREVIOUS DONOR DATA BY CÉDULA ─────────────────────────────────────────
+
+function handleGetByCedula(cedula) {
+  const normalizedCedula = normalizeCedula(cedula);
+  if (!normalizedCedula) return jsonResponse({ ok: true, found: false });
+
+  const sheet = getSheet();
+  const rows = sheet.getDataRange().getValues();
+
+  // Search from newest to oldest so repeated donors use their latest info.
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (normalizeCedula(rows[i][COLS.CEDULA - 1]) === normalizedCedula) {
+      return jsonResponse({
+        ok: true,
+        found: true,
+        cedula: rows[i][COLS.CEDULA - 1] || "",
+        nombre: rows[i][COLS.NOMBRE - 1] || "",
+        celular: rows[i][COLS.CELULAR - 1] || "",
+        destino: rows[i][COLS.DESTINO - 1] || "",
+      });
+    }
+  }
+
+  return jsonResponse({ ok: true, found: false });
 }
 
 // ── GET TOKEN INFO (for upload page pre-fill) ─────────────────────────────────
@@ -276,12 +325,21 @@ function normalizeToken(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function normalizeCedula(value) {
+  return String(value || "").replace(/\D/g, "").trim();
+}
+
 function buildUploadLink(token) {
-  const uploadPageUrl = (CONFIG.UPLOAD_PAGE_URL || "").trim();
+  let uploadPageUrl = (CONFIG.UPLOAD_PAGE_URL || "").trim();
   const encodedToken = encodeURIComponent(token);
 
   if (!uploadPageUrl) {
     throw new Error("UPLOAD_PAGE_URL no está configurado. Usa la URL completa de GitHub Pages para upload.html.");
+  }
+
+  // Accepts nadras.github.io/... but normalizes it to https://nadras.github.io/...
+  if (!/^https?:\/\//i.test(uploadPageUrl)) {
+    uploadPageUrl = "https://" + uploadPageUrl.replace(/^\/+/, "");
   }
 
   const separator = uploadPageUrl.includes("?") ? "&" : "?";
@@ -298,7 +356,9 @@ function getSheet() {
   if (savedSheetId) {
     const ss = SpreadsheetApp.openById(savedSheetId);
     PropertiesService.getScriptProperties().setProperty("SHEET_ID", ss.getId());
-    return ss.getSheets()[0];
+    const sheet = ss.getSheets()[0];
+    ensureSheetHeaders(sheet);
+    return sheet;
   }
 
   // Auto-create only once, then persist the ID in Script Properties.
@@ -309,11 +369,45 @@ function getSheet() {
   sheet.setName("Registros");
   sheet.appendRow([
     "Token", "Fecha Registro", "Cédula", "Nombre", "Celular",
-    "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Nota", "Fecha Entrega"
+    "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Carpeta Evidencia", "Nota", "Fecha Entrega"
   ]);
-  sheet.setFrozenRows(1);
-  sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1B4332").setFontColor("#ffffff");
+  ensureSheetHeaders(sheet);
   return sheet;
+}
+
+
+function ensureSheetHeaders(sheet) {
+  const requiredHeaders = [
+    "Token", "Fecha Registro", "Cédula", "Nombre", "Celular",
+    "Destino", "Estado", "Foto 1", "Foto 2", "Video", "Carpeta Evidencia", "Nota", "Fecha Entrega"
+  ];
+
+  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), requiredHeaders.length)).getValues()[0];
+
+  requiredHeaders.forEach((header, index) => {
+    if (currentHeaders[index] !== header) {
+      sheet.getRange(1, index + 1).setValue(header);
+    }
+  });
+
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#1B4332").setFontColor("#ffffff");
+}
+
+function setLinkCell(sheet, rowIndex, columnIndex, url, label) {
+  const cell = sheet.getRange(rowIndex, columnIndex);
+
+  if (!url) {
+    cell.setValue("");
+    return;
+  }
+
+  const richText = SpreadsheetApp.newRichTextValue()
+    .setText(label || url)
+    .setLinkUrl(url)
+    .build();
+
+  cell.setRichTextValue(richText);
 }
 
 function getDriveFolder() {
