@@ -411,8 +411,8 @@
       let ok = true;
 
       const fields = [
-        { id: 'cedula',  errId: 'err-cedula',  check: v => v.replace(/\D/g,'').length >= 8 },
-        { id: 'nombre',  errId: 'err-nombre',  check: v => v.trim().length >= 3 },
+        { id: 'cedula',  errId: 'err-cedula',  check: v => v.replace(/\D/g,'').length >= 2 },
+        { id: 'nombre',  errId: 'err-nombre',  check: v => v.trim().length >= 2 },
         { id: 'celular', errId: 'err-celular', check: v => getLocalPhoneDigits().length === 7 },
         { id: 'destino', errId: 'err-destino', check: v => v.trim().length >= 3 },
       ];
