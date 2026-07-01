@@ -155,6 +155,29 @@
 
     input[type="tel"] { letter-spacing: 1px; }
 
+    .phone-row {
+      display: grid;
+      grid-template-columns: 135px 1fr;
+      gap: 10px;
+    }
+    .phone-row select { padding-right: 30px; }
+    @media (max-width: 420px) {
+      .phone-row { grid-template-columns: 1fr; }
+    }
+
+    .autofill-notice {
+      display: none;
+      background: var(--green-pale);
+      border: 1px solid var(--green-light);
+      color: var(--green-deep);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: -4px 0 16px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .autofill-notice.show { display: block; }
+
     .hint {
       font-size: 11.5px;
       color: var(--text-muted);
@@ -289,9 +312,9 @@
   <!-- CONFIG — set by setup wizard or manually -->
   <script>
     window.APP_CONFIG = {
-      SCRIPT_URL:    "https://script.google.com/macros/s/AKfycbzrw2wo1Qlr9ekfUBulLRcGnmRjiaLbFRWnimNuOjobLDELHSojjqEQkyN4Xk-1ciRCQg/exec",
-      CAMPAIGN_NAME: "Ven",
-      CENTER_NAME:   "test4",
+      SCRIPT_URL:   "",   // ← Paste your deployed Apps Script URL here
+      CAMPAIGN_NAME: "Donativos",
+      CENTER_NAME:   "Centro de Acopio",
     };
   </script>
 
@@ -320,13 +343,27 @@
 
     <div class="field">
       <label for="celular">Número de celular <span class="req">*</span></label>
-      <input type="tel" id="celular" placeholder="+58 410 123 4567" inputmode="tel" />
+      <div class="phone-row">
+        <select id="codigo-celular" aria-label="Código celular">
+          <option value="+58412">+58 412</option>
+          <option value="+58414">+58 414</option>
+          <option value="+58416">+58 416</option>
+          <option value="+58424">+58 424</option>
+          <option value="+58426">+58 426</option>
+        </select>
+        <input type="tel" id="celular" placeholder="1234567" maxlength="9" inputmode="numeric" />
+      </div>
+      <div class="hint">Selecciona el código y escribe los 7 dígitos restantes.</div>
       <div class="error-msg" id="err-celular">Ingresa un número de celular válido</div>
+    </div>
+
+    <div class="autofill-notice" id="autofill-notice">
+      Encontramos datos previos para esta cédula y los completamos automáticamente. Puedes cambiarlos antes de registrar.
     </div>
 
     <div class="field">
       <label for="destino">Destino de los donativos <span class="req">*</span></label>
-      <input type="text" id="destino" placeholder="Hospital Universitario de Caracas" />
+      <input type="text" id="destino" placeholder="Comunidad El Progreso, Manabí" />
       <div class="hint">Escribe el lugar donde llevarás la donación</div>
       <div class="error-msg" id="err-destino">Indica el destino de la entrega</div>
     </div>
@@ -376,7 +413,7 @@
       const fields = [
         { id: 'cedula',  errId: 'err-cedula',  check: v => v.replace(/\D/g,'').length >= 8 },
         { id: 'nombre',  errId: 'err-nombre',  check: v => v.trim().length >= 3 },
-        { id: 'celular', errId: 'err-celular', check: v => v.replace(/[\s\-\+\(\)]/g,'').length >= 8 },
+        { id: 'celular', errId: 'err-celular', check: v => getLocalPhoneDigits().length === 7 },
         { id: 'destino', errId: 'err-destino', check: v => v.trim().length >= 3 },
       ];
 
@@ -398,12 +435,93 @@
     }
 
     // Clear error on input
-    ['cedula','nombre','celular','destino'].forEach(id => {
-      document.getElementById(id).addEventListener('input', () => {
-        document.getElementById(id).classList.remove('error');
-        document.getElementById('err-' + id).classList.remove('show');
+    ['cedula','nombre','celular','destino','codigo-celular'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        el.classList.remove('error');
+        const err = document.getElementById('err-' + id);
+        if (err) err.classList.remove('show');
       });
     });
+
+    function getLocalPhoneDigits() {
+      return document.getElementById('celular').value.replace(/\D/g, '').slice(0, 7);
+    }
+
+    function getFullPhoneNumber() {
+      const code = document.getElementById('codigo-celular').value;
+      const local = getLocalPhoneDigits();
+      return `${code}${local}`;
+    }
+
+    function setPhoneFromSaved(value) {
+      const digits = String(value || '').replace(/\D/g, '');
+      const withoutCountry = digits.startsWith('58') ? digits.slice(2) : digits;
+      const localVenezuelan = withoutCountry.startsWith('0') ? withoutCountry.slice(1) : withoutCountry;
+
+      if (localVenezuelan.length >= 10) {
+        const prefix = localVenezuelan.slice(0, 3);
+        const rest = localVenezuelan.slice(3, 10);
+        const select = document.getElementById('codigo-celular');
+        const optionValue = `+58${prefix}`;
+
+        if ([...select.options].some(option => option.value === optionValue)) {
+          select.value = optionValue;
+        }
+
+        document.getElementById('celular').value = rest;
+      } else {
+        document.getElementById('celular').value = String(value || '');
+      }
+    }
+
+    function formatPhoneForDisplay() {
+      const code = document.getElementById('codigo-celular').value;
+      const local = getLocalPhoneDigits();
+      const prefix = code.replace('+58', '');
+      return `+58 ${prefix} ${local}`;
+    }
+
+    let cedulaLookupTimer = null;
+
+    document.getElementById('cedula').addEventListener('input', () => {
+      clearTimeout(cedulaLookupTimer);
+      document.getElementById('autofill-notice').classList.remove('show');
+
+      cedulaLookupTimer = setTimeout(() => {
+        lookupCedula();
+      }, 450);
+    });
+
+    document.getElementById('celular').addEventListener('input', () => {
+      const input = document.getElementById('celular');
+      input.value = input.value.replace(/\D/g, '').slice(0, 7);
+    });
+
+    async function lookupCedula() {
+      const cedula = document.getElementById('cedula').value.replace(/\D/g, '');
+      const scriptUrl = window.APP_CONFIG.SCRIPT_URL;
+
+      if (!scriptUrl || cedula.length < 6) return;
+
+      try {
+        const separator = scriptUrl.includes('?') ? '&' : '?';
+        const res = await fetch(`${scriptUrl}${separator}action=getByCedula&cedula=${encodeURIComponent(cedula)}`);
+        const data = await res.json();
+
+        if (!data.ok || !data.found) return;
+
+        if (data.nombre) document.getElementById('nombre').value = data.nombre;
+        if (data.celular) setPhoneFromSaved(data.celular);
+        if (data.destino) document.getElementById('destino').value = data.destino;
+
+        document.getElementById('autofill-notice').classList.add('show');
+      } catch (err) {
+        // Do not block registration if autocomplete fails.
+        console.warn('No se pudo autocompletar por cédula', err);
+      }
+    }
 
     async function submitForm() {
       if (!validate()) return;
@@ -416,7 +534,7 @@
         action:   'register',
         cedula:   document.getElementById('cedula').value.trim(),
         nombre:   document.getElementById('nombre').value.trim(),
-        celular:  document.getElementById('celular').value.trim(),
+        celular:  formatPhoneForDisplay(),
         destino:  document.getElementById('destino').value.trim(),
       };
 
@@ -459,8 +577,7 @@
         `🔗 Mi enlace para subir foto de entrega:\n${uploadLink}\n\n📦 Destino: ${destino}\n👤 ${nombre}`
       );
       // wa.me with their own number pre-filled
-      const celular = document.getElementById('celular').value.replace(/[\s\-\(\)]/g,'');
-      const waNumber = celular.startsWith('+') ? celular.slice(1) : celular;
+      const waNumber = getFullPhoneNumber().replace(/\D/g, '');
       document.getElementById('btn-wa').href = `https://wa.me/${waNumber}?text=${msg}`;
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
