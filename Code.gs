@@ -202,7 +202,7 @@ function handleUploadMedia(data) {
     videoUrl  ? "Video:  " + videoUrl  : null,
   ].filter(Boolean).join("\n");
 
-  const upSubject = `📸 Evidencia recibida — ${nombre} → ${destino} | ${CONFIG.CENTER_NAME}`;
+  const upSubject = `Evidencia recibida — ${nombre} → ${destino} | ${CONFIG.CENTER_NAME}`;
   const upBody =
     `Se subió evidencia de entrega.\n\n` +
     `Campaña:  ${CONFIG.CAMPAIGN_NAME}\n` +
