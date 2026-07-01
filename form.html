@@ -312,7 +312,8 @@
   <!-- CONFIG — set by setup wizard or manually -->
   <script>
     window.APP_CONFIG = {
-      SCRIPT_URL:    "https://script.google.com/macros/s/AKfycbwuN5XMMRiCOEgF2avY08lM8jObCGSRrOwSnxjSq6mw_waxprK9aBUN3zagtnYHv39INg/exec",
+      SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwuN5XMMRiCOEgF2avY08lM8jObCGSRrOwSnxjSq6mw_waxprK9aBUN3zagtnYHv39INg/exec",
+      UPLOAD_PAGE_URL: "https://nadras.github.io/donativos/upload.html",
       CAMPAIGN_NAME: "Terremoto 2026",
       CENTER_NAME:   "FCU - UCV",
     };
@@ -332,7 +333,7 @@
     <div class="field">
       <label for="cedula">Cédula de identidad <span class="req">*</span></label>
       <input type="text" id="cedula" placeholder="0912345678" maxlength="13" inputmode="numeric" />
-      <div class="error-msg" id="err-cedula">Ingresa tu número de cédula</div>
+      <div class="error-msg" id="err-cedula">Ingresa tu número de cédula, mínimo 2 dígitos</div>
     </div>
 
     <div class="field">
@@ -503,7 +504,7 @@
       const cedula = document.getElementById('cedula').value.replace(/\D/g, '');
       const scriptUrl = window.APP_CONFIG.SCRIPT_URL;
 
-      if (!scriptUrl || cedula.length < 6) return;
+      if (!scriptUrl || cedula.length < 2) return;
 
       try {
         const separator = scriptUrl.includes('?') ? '&' : '?';
@@ -521,6 +522,28 @@
         // Do not block registration if autocomplete fails.
         console.warn('No se pudo autocompletar por cédula', err);
       }
+    }
+
+
+    function normalizeUploadLink(rawLink, token) {
+      const raw = String(rawLink || "").trim();
+      const encodedToken = encodeURIComponent(token || "");
+      const configuredUploadPage = String(window.APP_CONFIG.UPLOAD_PAGE_URL || "").trim();
+
+      if (/^https?:\/\//i.test(raw)) {
+        return raw;
+      }
+
+      if (configuredUploadPage && encodedToken) {
+        const separator = configuredUploadPage.includes("?") ? "&" : "?";
+        return `${configuredUploadPage}${separator}token=${encodedToken}`;
+      }
+
+      if (raw) {
+        return new URL(raw, window.location.href).href;
+      }
+
+      return "";
     }
 
     async function submitForm() {
@@ -552,7 +575,7 @@
         const data = await res.json();
 
         if (data.ok) {
-          uploadLink = data.uploadLink;
+          uploadLink = normalizeUploadLink(data.uploadLink, data.token);
           showSuccess();
         } else {
           alert('Error: ' + (data.error || 'Inténtalo nuevamente'));
