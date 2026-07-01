@@ -280,15 +280,12 @@ function buildUploadLink(token) {
   const uploadPageUrl = (CONFIG.UPLOAD_PAGE_URL || "").trim();
   const encodedToken = encodeURIComponent(token);
 
-  // upload.html lives on GitHub Pages, not inside the Apps Script Web App.
-  // Example: https://nadras.github.io/donativos/upload.html?token=ABC123
-  if (uploadPageUrl) {
-    const separator = uploadPageUrl.includes("?") ? "&" : "?";
-    return `${uploadPageUrl}${separator}token=${encodedToken}`;
+  if (!uploadPageUrl) {
+    throw new Error("UPLOAD_PAGE_URL no está configurado. Usa la URL completa de GitHub Pages para upload.html.");
   }
 
-  // Fallback for local/same-folder testing.
-  return `upload.html?token=${encodedToken}`;
+  const separator = uploadPageUrl.includes("?") ? "&" : "?";
+  return `${uploadPageUrl}${separator}token=${encodedToken}`;
 }
 
 function generateToken() {
